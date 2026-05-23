@@ -39,7 +39,7 @@ class TiedBlockConv1D(Layer):
 
 # 2. Load the Model and define scaling constants
 model = tf.keras.models.load_model(
-    'sepsis_tbc_model.h5', 
+    'sepsis_model.h5', 
     custom_objects={'TiedBlockConv1D': TiedBlockConv1D}
 )
 
