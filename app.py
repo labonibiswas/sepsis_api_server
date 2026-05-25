@@ -48,6 +48,10 @@ MEANS = np.array([86.51486770913331, 97.52455546927243, 36.896013348042246, 122.
 STDS = np.array([17.747861937737415, 2.8151486750736194, 0.8123167781969647, 23.06672409066397, 12.90534681761707, 5.258561191976751, 16.04828766682398, 0.47167752293652937])
 THRESHOLD = 0.6198692917823792  # Your optimized threshold
 
+@app.route('/')
+def home():
+    return "✅ Sepsis AI Cloud Server is Awake and Running!"
+
 # 3. Create the Prediction Endpoint
 @app.route('/predict', methods=['POST'])
 def predict():
