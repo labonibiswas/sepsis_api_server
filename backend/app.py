@@ -27,7 +27,9 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(ml_bp)
 
 if __name__ == '__main__':
+    # Render assigns a dynamic port. If running locally, it defaults to 5000.
     port = int(os.environ.get("PORT", 5000))
     
-    # host="0.0.0.0" is the magic key that opens the server to the internet!
-    socketio.run(app, host="0.0.0.0", port=port, debug=False)
+    # host="0.0.0.0" opens it to the internet
+    # allow_unsafe_werkzeug=True bypasses the production server warning
+    socketio.run(app, host="0.0.0.0", port=port, debug=False, allow_unsafe_werkzeug=True)
