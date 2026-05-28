@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -26,4 +27,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(ml_bp)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    
+    # host="0.0.0.0" is the magic key that opens the server to the internet!
+    socketio.run(app, host="0.0.0.0", port=port, debug=False)
