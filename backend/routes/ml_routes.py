@@ -20,6 +20,10 @@ ml_bp = Blueprint('ml', __name__)
 vitals_log_collection = db["vitals_log"]
 users_collection = db["users"]
 
+# ✨ NEW: In-Memory Cache so we don't spam MongoDB
+patient_profile_cache = {}
+
+
 class TiedBlockConv1D(Layer):
     def __init__(self, filters, kernel_size, blocks=2, padding='causal', dilation_rate=1, activation='relu', **kwargs):
         super(TiedBlockConv1D, self).__init__(**kwargs)
@@ -105,11 +109,20 @@ def predict():
         gender_val = 1.0 
         
         if email:
-            user = users_collection.find_one({"email": email})
-            if user:
-                age = float(user.get("age", 65.0))
-                gender_str = user.get("gender", "Male")
-                gender_val = 1.0 if gender_str == "Male" else 0.0
+            # ✨ CHECK THE CACHE FIRST ✨
+            if email in patient_profile_cache:
+                age = patient_profile_cache[email]['age']
+                gender_val = patient_profile_cache[email]['gender_val']
+            else:
+                # 🛑 NOT IN CACHE: Ask MongoDB (This only happens ONCE!)
+                user = users_collection.find_one({"email": email})
+                if user:
+                    age = float(user.get("age", 65.0))
+                    gender_str = user.get("gender", "Male")
+                    gender_val = 1.0 if gender_str == "Male" else 0.0
+                    
+                    # ✅ SAVE IT TO CACHE for next time
+                    patient_profile_cache[email] = {'age': age, 'gender_val': gender_val}
 
         scaled_age = (age - 62.05) / 16.04
         scaled_gender = (gender_val - 0.57) / 0.47
