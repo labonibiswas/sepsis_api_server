@@ -78,6 +78,12 @@ if TRACKING_ENABLED:
 if TRACKING_ENABLED:
     tracker_run = EmissionsTracker(project_name="sepsis_predict_loop", logLevel="ERROR")
 
+
+@ml_bp.route('/')
+def home():
+    return "✅ Sepsis AI Cloud Server is Awake and Running!"
+
+
 @ml_bp.route('/predict', methods=['POST'])
 def predict():
     start_time = time.time()
