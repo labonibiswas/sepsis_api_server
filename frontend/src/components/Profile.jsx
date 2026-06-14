@@ -8,7 +8,7 @@ export default function Profile({ onClose }) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  const API_URL = "http://127.0.0.1:5000";
+  const API_URL = "https://sepsis-api-server.onrender.com";
 
   useEffect(() => {
     fetchProfile();

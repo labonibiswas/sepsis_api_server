@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
 import Hero from './components/Hero';
@@ -8,8 +8,21 @@ import Footer from './components/Footer';
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  useEffect(() => {
+    const savedToken = localStorage.getItem('token');
+    if (savedToken) {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
   const handleDownloadExcel = () => {
     alert("Downloading 30-Day Vitals & Medical History Excel Sheet...");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userName');
+    setIsLoggedIn(false);
   };
 
   return (
@@ -35,7 +48,7 @@ export default function App() {
         </>
       )}
 
-      {/* 3. Footer is ALWAYS visible */}
+    
       <Footer />
       
     </div>

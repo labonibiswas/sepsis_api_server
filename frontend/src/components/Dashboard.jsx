@@ -3,13 +3,25 @@ import { io } from 'socket.io-client';
 
 export default function VitalsDashboard() {
   const [liveData, setLiveData] = useState({
-    hr: '--', rr: '--', sbp: '--', dbp: '--', spo2: '--', temp: '--', risk: '0.0', status: 'Waiting...'
+    hr: '--', rr: '--', sbp: '--', dbp: '--', spo2: '--', temp: '--', risk: '0.0', qsofa: '--', status: 'Waiting...'
   });
   const [logs, setLogs] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const socket = io("http://127.0.0.1:5000");
+    const socket = io("https://sepsis-api-server.onrender.com");
+
+    //const socket = io("http://127.0.0.1:5000");
+
+
+    setInterval(() => {
+      const start = Date.now();
+      socket.emit('latency_ping', () => {
+        const rtt = Date.now() - start;
+        const oneWayDelay = rtt / 2;
+        console.log(`⚡ Flask->React | One-Way Delay: ${oneWayDelay} ms`);
+      });
+    }, 5000);
 
     socket.on('connect', () => setIsConnected(true));
     socket.on('disconnect', () => setIsConnected(false));
@@ -22,6 +34,17 @@ export default function VitalsDashboard() {
 
       const riskPercent = (data.risk_score * 100).toFixed(1);
       const isDanger = riskPercent >= 50.0;
+
+      // --- STRICT qSOFA CALCULATION (Max 2) ---
+      let calculatedQsofa = 0;
+      const currentRR = parseFloat(data.vitals?.rr);
+      const currentSBP = parseFloat(data.vitals?.sbp);
+
+      // +1 point for Respiratory Rate >= 22
+      if (!isNaN(currentRR) && currentRR >= 22) calculatedQsofa += 1;
+      
+      // +1 point for Systolic Blood Pressure <= 100
+      if (!isNaN(currentSBP) && currentSBP <= 100 && currentSBP > 0) calculatedQsofa += 1;
       
       // Map the raw data from Flask directly to our UI
       const newEntry = {
@@ -33,7 +56,8 @@ export default function VitalsDashboard() {
         spo2: data.vitals?.spo2 || '--',
         temp: data.vitals?.temp || '--',
         status: isDanger ? 'Warning' : 'Stable',
-        risk: riskPercent
+        risk: riskPercent,
+        qsofa: calculatedQsofa.toString()
       };
 
       setLiveData(newEntry);
@@ -79,18 +103,42 @@ export default function VitalsDashboard() {
           <p className="text-2xl font-black text-blue-600">{liveData.spo2} <span className="text-sm font-medium text-slate-400">%</span></p>
         </div>
         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-          <p className="text-xs text-slate-400 font-bold mb-1">BLOOD PRESSURE</p>
-          <p className="text-2xl font-black text-slate-800">{liveData.sbp}/{liveData.dbp}</p>
+          <p className="text-xs text-slate-400 font-bold mb-1">SYSTOLIC BLOOD PRESSURE</p>
+          <p className="text-2xl font-black text-slate-800">{liveData.sbp}</p>
+        </div>
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+          <p className="text-xs text-slate-400 font-bold mb-1">DIASTOLIC BLOOD PRESSURE</p>
+          <p className="text-2xl font-black text-slate-800">{liveData.dbp}</p>
         </div>
         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
           <p className="text-xs text-slate-400 font-bold mb-1">TEMPERATURE</p>
           <p className="text-2xl font-black text-slate-800">{liveData.temp} <span className="text-sm font-medium text-slate-400">°C</span></p>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
         <div className={`p-4 rounded-xl shadow-sm border ${parseFloat(liveData.risk) >= 50.0 ? 'bg-red-50 border-red-200' : 'bg-white border-slate-100'}`}>
-          <p className="text-xs text-slate-400 font-bold mb-1">RISK SCORE</p>
+          <p className="text-xs text-slate-400 font-bold mb-1">AI RISK SCORE</p>
           <p className={`text-2xl font-black ${parseFloat(liveData.risk) >= 50.0 ? 'text-red-600' : 'text-green-500'}`}>
             {liveData.risk} <span className="text-sm font-medium opacity-70">%</span>
           </p>
+        </div>
+        <div className={`p-4 rounded-xl shadow-sm border relative group ${parseInt(liveData.qsofa) === 2 ? 'bg-red-50 border-red-200' : 'bg-white border-slate-100'}`}>
+          <div className="flex justify-between items-start">
+            <p className="text-xs text-slate-400 font-bold mb-1">qSOFA SCORE*</p>
+            
+            {/* Tooltip Icon for the Disclaimer */}
+            <span className="text-slate-300 text-xs cursor-help border border-slate-200 rounded-full w-4 h-4 flex items-center justify-center">?</span>
+          </div>
+
+          <p className={`text-2xl font-black ${parseInt(liveData.qsofa) === 2 ? 'text-red-600' : 'text-slate-800'}`}>
+            {liveData.qsofa} <span className="text-sm font-medium opacity-70">/ 2</span>
+          </p>
+
+          {/* Hover Tooltip Text */}
+          <div className="absolute hidden group-hover:block bg-slate-800 text-white text-xs rounded p-2 -top-12 left-0 w-48 z-10 shadow-lg">
+            *Partial score. Mentation (GCS) omitted due to wearable hardware constraints.
+          </div>
         </div>
       </div>
 
